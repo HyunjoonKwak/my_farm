@@ -128,6 +128,13 @@ deploy() {
 }
 
 # 업데이트 (새 이미지로 교체)
+# 배포 후 태그 없는(dangling) 이미지 정리 — 배포마다 이전 이미지가 남아 19GB까지 쌓인 사례(2026-09-15).
+# 실행 중이거나 태그가 있는 이미지는 건드리지 않는다. 실패해도 배포 결과에는 영향 없음.
+prune_dangling_images() {
+    echo "🧹 태그 없는 이미지 정리 중..."
+    docker image prune -f || true
+}
+
 update() {
     log_info "RetireFarm Manager 업데이트 중..."
 
@@ -150,6 +157,7 @@ update() {
         log_error "업데이트 실패"
         exit 1
     fi
+    prune_dangling_images
 }
 
 # 시작
