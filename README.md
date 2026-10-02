@@ -3,7 +3,7 @@
 > 2026-10-02 리브랜딩: 옛 이름 Retirefarm Manager · retirefarm_manager. NAS 폴더·이미지·컨테이너를 my_farm / my-farm으로 바꿨다. DB(retirefarm.db)·크롬 확장·작업자 토큰·도메인 이름은 그대로다.
 
 > **목표 · 귀농·스마트팜 경영** — 평택 스마트팜(대추방울토마토)의 귀농 준비·자금·영농 기록과 주간 시장 브리핑(가락시장 도매가·경쟁점 판매가)을 관리한다.  
-> **하지 않는 일** — 스마트스토어 주문·재고 운영(store_manager).
+> **하지 않는 일** — 스마트스토어 주문·재고 운영(my_store).
 
 Next.js 16 · Prisma/SQLite · NextAuth/Kakao 기반 귀농 준비·자금·영농 관리 앱입니다.
 
@@ -11,8 +11,8 @@ Next.js 16 · Prisma/SQLite · NextAuth/Kakao 기반 귀농 준비·자금·영�
 
 | 앱 | 어디서 | 목표 | 하지 않는 일 |
 |---|---|---|---|
-| **[store_manager](https://github.com/HyunjoonKwak/openstore_manager)** | NAS 웹 | **스마트스토어 운영** — 스마트스토어의 주문·재고를 관리하고 AI 상세페이지 생성과 경쟁사 벤치마킹을 한다 | 농장 영농·자금 관리(my_farm) |
-| **my_farm** (이것) | NAS 웹 | **귀농·스마트팜 경영** — 평택 스마트팜(대추방울토마토)의 귀농 준비·자금·영농 기록과 주간 시장 브리핑(가락시장 도매가·경쟁점 판매가)을 관리한다 | 스마트스토어 주문·재고 운영(store_manager) |
+| **[my_store](https://github.com/HyunjoonKwak/my_store)** | NAS 웹 | **스마트스토어 운영** — 스마트스토어의 주문·재고를 관리하고 AI 상세페이지 생성과 경쟁사 벤치마킹을 한다 | 농장 영농·자금 관리(my_farm) |
+| **my_farm** (이것) | NAS 웹 | **귀농·스마트팜 경영** — 평택 스마트팜(대추방울토마토)의 귀농 준비·자금·영농 기록과 주간 시장 브리핑(가락시장 도매가·경쟁점 판매가)을 관리한다 | 스마트스토어 주문·재고 운영(my_store) |
 | **[goe_recruit](https://github.com/HyunjoonKwak/goe_recruit)** | NAS 웹 | **가족 구직** — 아내의 학교 구인구직 검색 — 경기도교육청 채용공고를 모아 보여 주고 새 공고를 텔레그램으로 알린다 | 다른 지역·직군 채용, 지원서 작성 |
 
 도매시장 시세 플랫폼 nongsise_platform은 쓰지 않아 2026-10-01에 보관했다(도매가는 my_farm가 직접 수집).

@@ -7,7 +7,7 @@
 
 자산 카테고리마다 원장 소유자는 정확히 하나(SSOT)이고 쓰기 경로도 소유자에게만
 있다(single writer). retirefarm은 **읽기 전용 소비자** — 자산 수동 입력 필드를
-만들지 않는다. 값이 틀렸으면 소유 서비스(portfolio_manager / asset_manager)에서
+만들지 않는다. 값이 틀렸으면 소유 서비스(portfolio_manager / my_realestate)에서
 고치고, 고친 결과가 스냅샷으로 흘러온다.
 
 ## Phase 1 — 자산 허브 계약 정렬 ✅ 완료 2026-08-20
@@ -26,12 +26,12 @@
   합산 원천만 두 소스 직접 합산 → 허브 순자산으로 바뀌었다.
 - [x] **매도 시뮬 이관 마무리 (§1.5.3-3)**: 로컬 `capital-gains-tax.ts`(asset 원본의
   단순화 복사본)·`sale-simulator.ts`(asset으로 이관 완료본)·양도세 계산기
-  라우트/컴포넌트 삭제. `/api/assets/sale-simulator`는 asset_manager
+  라우트/컴포넌트 삭제. `/api/assets/sale-simulator`는 my_realestate
   `POST /api/simulations/sale` 프록시로 대체 (스냅샷 토큰 인증, 원장 자동 로드).
   SaleSimulator UI는 원장 물건 선택+희망가 override 방식으로 재작성.
 - [x] **RealEstateAsset 고아 모델 제거**: 프로덕션 0건 확인 후 드롭.
-  `FundingSource.linkedAssetId`(FK) → `externalAssetId`(asset_manager Portfolio id,
-  FK 없음). 연간 리포트 자산 섹션은 asset_manager 요약으로 교체.
+  `FundingSource.linkedAssetId`(FK) → `externalAssetId`(my_realestate Portfolio id,
+  FK 없음). 연간 리포트 자산 섹션은 my_realestate 요약으로 교체.
   (기존 코드는 selectedAssetId를 API가 무시해 물건 연결이 저장된 적 없음 — 이제 저장됨)
 - [x] 마이그레이션: `20260820004144_asset_hub_phase1_snapshot_consumer`
 
@@ -46,7 +46,7 @@
 | `NEXT_PUBLIC_ASSET_MANAGER_URL` | `https://assets.specialrisk.me` | 브라우저 딥링크 |
 
 - 토큰 발급: my_portal `backend/scripts/issue_snapshot_consumer_token.py issue`,
-  asset_manager `docker exec naver-crawler-web node scripts/issue-snapshot-token.mjs issue`
+  my_realestate `docker exec my-realestate-web node scripts/issue-snapshot-token.mjs issue`
   (**.mjs** — .ts 아님). 회전 = 신규 발급 후 구 토큰 revoke.
   ⚠️ 발급 출력에서 토큰만 뽑을 때 `grep '^token'`은 `token_id` 줄까지 잡는다 —
   `grep -E '^token[[:space:]]+:'`로 구분할 것.
@@ -73,7 +73,7 @@
 - UI: 순자산 표시 + 자산 항목별 `origin` 뱃지(딥링크 근거) + 부채 내역 + 스테일 뱃지.
 - compose: portfolio-net 외부 네트워크 합류 **제거** (portfolio-backend 직접 호출이
   사라짐). my_portal은 `0.0.0.0:8100`, asset은 `0.0.0.0:3000`으로 호스트 포트 접근.
-- **매도 시뮬용 asset_manager 연결은 그대로 유지** — 게이지와 별개 경로다 (§1.5.3).
+- **매도 시뮬용 my_realestate 연결은 그대로 유지** — 게이지와 별개 경로다 (§1.5.3).
   물건 단위 원장 조회가 필요해 집계 API로 대체 불가.
 - 마이그레이션: `20260820065859_hub_net_worth_single_source`
 
