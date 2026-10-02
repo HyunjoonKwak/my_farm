@@ -1,6 +1,6 @@
 #!/bin/sh
 # 과거 시세 백필 드라이버 — 컨테이너 안에서 실행한다.
-#   docker exec -d retirefarm-app sh /app/scripts/market-backfill-driver.sh
+#   docker exec -d my-farm sh /app/scripts/market-backfill-driver.sh
 #
 # market-backfill.cjs를 하루 단위로 반복 호출하며 과거로 내려간다. 저널에 완료 날짜가
 # 남으므로 중단해도 이어서 재개된다. 세 가지 이유로 스스로 멈춘다.

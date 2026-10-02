@@ -6,7 +6,7 @@
 set -e
 
 # 설정
-APP_NAME="retirefarm-manager"
+APP_NAME="my-farm"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 DOCKER_COMPOSE_FILE="$APP_DIR/docker-compose.yml"
 BACKUP_DIR="$APP_DIR/backups"
@@ -15,7 +15,7 @@ DB_FILE="retirefarm.db"
 # GHCR 설정
 GHCR_USERNAME="${GHCR_USERNAME:-hyunjoonkwak}"
 GHCR_USERNAME=$(echo "$GHCR_USERNAME" | tr '[:upper:]' '[:lower:]')
-IMAGE_NAME="ghcr.io/$GHCR_USERNAME/retirefarm-manager"
+IMAGE_NAME="ghcr.io/$GHCR_USERNAME/my-farm"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 # 색상

@@ -1,4 +1,4 @@
-# retirefarm_manager 재설계 플랜 (Asset Hub Integration §6 / §8-6)
+# my_farm 재설계 플랜 (Asset Hub Integration §6 / §8-6)
 
 > 원본 설계: `my_portal/docs/ASSET_HUB_INTEGRATION.md` §6.
 > 이 문서는 retirefarm 쪽 실행 플랜과 진행 상태를 기록한다.

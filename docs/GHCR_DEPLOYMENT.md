@@ -73,8 +73,8 @@ docker buildx use multiarch-builder
 # 멀티플랫폼 빌드 및 푸시
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/hyunjoonkwak/retirefarm-manager:latest \
-  -t ghcr.io/hyunjoonkwak/retirefarm-manager:v1.0.0 \
+  -t ghcr.io/hyunjoonkwak/my-farm:latest \
+  -t ghcr.io/hyunjoonkwak/my-farm:v1.0.0 \
   --push \
   .
 ```
@@ -86,7 +86,7 @@ docker buildx build \
 NAS에 필요한 파일만 복사:
 
 ```
-/volume1/docker/retirefarm-manager/
+/volume1/docker/my-farm/
 ├── docker-compose.prod.yml
 ├── deploy.sh
 ├── .env
@@ -95,7 +95,7 @@ NAS에 필요한 파일만 복사:
 
 ```bash
 # NAS에서 실행
-cd /volume1/docker/retirefarm-manager
+cd /volume1/docker/my-farm
 
 # 초기 배포 (로그인 + pull + 시작)
 ./deploy.sh deploy
@@ -135,7 +135,7 @@ IMAGE_TAG=v1.0.0 ./deploy.sh update
 ### 로컬 (개발용)
 
 ```
-retirefarm-manager/
+my-farm/
 ├── src/                    # 소스 코드
 ├── prisma/                 # Prisma 스키마
 ├── Dockerfile              # 빌드 설정
@@ -149,7 +149,7 @@ retirefarm-manager/
 ### NAS (배포용)
 
 ```
-retirefarm-manager/
+my-farm/
 ├── docker-compose.prod.yml  # GHCR 이미지 설정
 ├── deploy.sh               # 배포 스크립트
 ├── .env                    # 환경 변수
@@ -158,7 +158,7 @@ retirefarm-manager/
 
 ## 이미지 정보
 
-- **이미지 이름**: `ghcr.io/hyunjoonkwak/retirefarm-manager`
+- **이미지 이름**: `ghcr.io/hyunjoonkwak/my-farm`
 - **플랫폼**: `linux/amd64`, `linux/arm64`
 - **태그 규칙**:
   - `latest` - 최신 버전
@@ -183,7 +183,7 @@ echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USERNAME --password-stdin
 ./deploy.sh login
 
 # 이미지 존재 여부 확인
-docker pull ghcr.io/hyunjoonkwak/retirefarm-manager:latest
+docker pull ghcr.io/hyunjoonkwak/my-farm:latest
 ```
 
 ### 빌드 실패

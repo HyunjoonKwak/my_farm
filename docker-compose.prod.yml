@@ -3,8 +3,8 @@
 
 services:
   app:
-    image: ghcr.io/${GHCR_USERNAME:-hyunjoonkwak}/retirefarm-manager:${IMAGE_TAG:-latest}
-    container_name: retirefarm-app
+    image: ghcr.io/${GHCR_USERNAME:-hyunjoonkwak}/my-farm:${IMAGE_TAG:-latest}
+    container_name: my-farm
     restart: unless-stopped
     ports:
       - "3024:3000"
@@ -45,8 +45,8 @@ services:
     networks:
       # §2.4 전환으로 portfolio-backend 직접 호출이 사라져 외부 네트워크 합류가 불필요해졌다.
       # my_portal(0.0.0.0:8100)·asset(0.0.0.0:3000) 모두 호스트 포트로 접근한다.
-      - retirefarm-network
+      - my-farm-network
 
 networks:
-  retirefarm-network:
+  my-farm-network:
     driver: bridge

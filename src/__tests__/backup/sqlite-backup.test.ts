@@ -89,7 +89,7 @@ it('deployment backup uses the same online snapshot with WAL commits', async () 
   const bin = path.join(dir, 'bin'); await fs.mkdir(bin);
   const script = path.resolve('scripts/sqlite-backup.mjs');
   // Only the docker transport is replaced; the production backup command runs unchanged.
-  const shim = '#!/bin/sh\n[ "$1 $2 $3 $4 $5" = "exec retirefarm-app node scripts/sqlite-backup.mjs create" ] || exit 91\nexport BACKUP_DIR="$TEST_BACKUPS"\nexec "$TEST_NODE" "$TEST_BACKUP_SCRIPT" create\n';
+  const shim = '#!/bin/sh\n[ "$1 $2 $3 $4 $5" = "exec my-farm node scripts/sqlite-backup.mjs create" ] || exit 91\nexport BACKUP_DIR="$TEST_BACKUPS"\nexec "$TEST_NODE" "$TEST_BACKUP_SCRIPT" create\n';
   await fs.writeFile(path.join(bin, 'docker'), shim, { mode: 0o700 });
   const connection = new Database(db);
   try {
@@ -107,5 +107,5 @@ it('deployment update stops before pulling or replacing the image if backup fail
   const calls = path.join(dir, 'calls');
   await fs.writeFile(path.join(bin, 'docker'), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$TEST_CALLS"\nexit 42\n', { mode: 0o700 });
   expect(() => execFileSync('bash', [path.resolve('deploy.sh'), 'update'], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, TEST_CALLS: calls }, stdio: 'pipe' })).toThrow();
-  expect((await fs.readFile(calls, 'utf8')).trim()).toBe('exec retirefarm-app node scripts/sqlite-backup.mjs create');
+  expect((await fs.readFile(calls, 'utf8')).trim()).toBe('exec my-farm node scripts/sqlite-backup.mjs create');
 });

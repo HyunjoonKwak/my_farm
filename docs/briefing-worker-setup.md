@@ -45,7 +45,7 @@ chmod 600 ~/.config/retirefarm/briefing-worker.token
 ## 4. 실행
 
 ```sh
-cd /path/to/retirefarm_manager
+cd /path/to/my_farm
 BRIEFING_SERVER_URL=https://farm.example.com \
 BRIEFING_WORKER_TOKEN_FILE=$HOME/.config/retirefarm/briefing-worker.token \
 node scripts/briefing-worker.mjs --once

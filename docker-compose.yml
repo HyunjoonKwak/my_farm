@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    container_name: retirefarm-app
+    container_name: my-farm
     restart: unless-stopped
     ports:
       - "3024:3000"
@@ -30,8 +30,8 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - retirefarm-network
+      - my-farm-network
 
 networks:
-  retirefarm-network:
+  my-farm-network:
     driver: bridge

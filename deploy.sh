@@ -6,9 +6,9 @@
 set -e
 
 # 설정
-APP_NAME="retirefarm-manager"
+APP_NAME="my-farm"
 GHCR_USERNAME="${GHCR_USERNAME:-hyunjoonkwak}"
-IMAGE_NAME="ghcr.io/$GHCR_USERNAME/retirefarm-manager"
+IMAGE_NAME="ghcr.io/$GHCR_USERNAME/my-farm"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 DEPLOY_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPOSE_FILE="$DEPLOY_DIR/docker-compose.prod.yml"
@@ -248,7 +248,7 @@ backup() {
 
     # 실행 중인 앱과 같은 DB/볼륨을 사용한다. WAL의 미체크포인트 커밋도 포함한다.
     # 백업 실패 시 update()의 set -e가 이미지 교체를 중단한다. 파일 복사로 우회하지 않는다.
-    if docker exec retirefarm-app node scripts/sqlite-backup.mjs create; then
+    if docker exec my-farm node scripts/sqlite-backup.mjs create; then
         log_success "온라인 백업 완료 (앱의 BACKUP_DIR에 저장)"
     else
         log_error "온라인 백업 실패: 컨테이너 상태와 백업 볼륨을 확인하세요."
