@@ -7,7 +7,7 @@
 
 자산 카테고리마다 원장 소유자는 정확히 하나(SSOT)이고 쓰기 경로도 소유자에게만
 있다(single writer). retirefarm은 **읽기 전용 소비자** — 자산 수동 입력 필드를
-만들지 않는다. 값이 틀렸으면 소유 서비스(portfolio_manager / my_realestate)에서
+만들지 않는다. 값이 틀렸으면 소유 서비스(my_portfolio / my_realestate)에서
 고치고, 고친 결과가 스냅샷으로 흘러온다.
 
 ## Phase 1 — 자산 허브 계약 정렬 ✅ 완료 2026-08-20
