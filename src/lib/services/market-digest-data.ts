@@ -18,10 +18,13 @@ export function parseVarieties(raw: string): string[] {
   }
 }
 
-/** 요약을 켠 설정들의 활성 항목 (정렬 순서대로). */
-export async function getDigestItems(): Promise<ItemConfig[]> {
+/**
+ * 활성 브리핑 항목 (정렬 순서대로). 기본은 발송을 켠 설정만,
+ * 봇 명령처럼 사용자가 직접 물을 때는 발송 on/off와 무관하게 읽는다.
+ */
+export async function getDigestItems({ requireDigestEnabled = true } = {}): Promise<ItemConfig[]> {
   const settings = await prisma.marketCollectionSettings.findMany({
-    where: { digestEnabled: true },
+    where: requireDigestEnabled ? { digestEnabled: true } : {},
     orderBy: { createdAt: "asc" },
     select: { digestItems: { where: { enabled: true }, orderBy: { sortOrder: "asc" } } },
   });

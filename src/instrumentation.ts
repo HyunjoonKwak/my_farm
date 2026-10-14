@@ -26,6 +26,13 @@ export async function register() {
       console.error("[Instrumentation] Failed to initialize backup scheduler:", error);
     }
     try {
+      // 텔레그램 시세 봇 명령 수신 (TELEGRAM_TOKEN/CHAT_ID 없으면 시작하지 않음)
+      const { startTelegramBot } = await import("@/lib/telegram-bot");
+      startTelegramBot();
+    } catch (error) {
+      console.error("[Instrumentation] Failed to start Telegram bot:", error);
+    }
+    try {
       const { loadAllSchedules } = await import("@/lib/scheduler");
       const { logger } = await import("@/lib/logger");
       const count = await loadAllSchedules();

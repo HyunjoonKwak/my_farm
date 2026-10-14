@@ -9,7 +9,7 @@
 
 import { logger } from "@/lib/logger";
 
-const TELEGRAM_API_BASE = "https://api.telegram.org";
+export const TELEGRAM_API_BASE = "https://api.telegram.org";
 const SEND_TIMEOUT_MS = 15_000;
 // 429는 retry_after가 이 값 이하일 때 한 번만 기다렸다 재시도한다
 const MAX_RETRY_AFTER_SECONDS = 30;

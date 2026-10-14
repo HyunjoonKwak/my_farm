@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-const { schedulerMock, backupMock, loggerMock, recoveryMock } = vi.hoisted(() => ({
+const { schedulerMock, backupMock, loggerMock, recoveryMock, botMock } = vi.hoisted(() => ({
+  botMock: { startTelegramBot: vi.fn() },
   schedulerMock: { loadAllSchedules: vi.fn() },
   backupMock: { startBackupScheduler: vi.fn() },
   recoveryMock: { startMarketRecoveryScheduler: vi.fn() },
@@ -12,6 +13,7 @@ vi.mock("@/lib/scheduler", () => schedulerMock);
 vi.mock("@/lib/backup/scheduler", () => backupMock);
 vi.mock("@/lib/market-recovery-scheduler", () => recoveryMock);
 vi.mock("@/lib/logger", () => ({ logger: loggerMock }));
+vi.mock("@/lib/telegram-bot", () => botMock);
 
 import { register } from "@/instrumentation";
 
@@ -56,6 +58,16 @@ describe("register()", () => {
     expect(backupMock.startBackupScheduler).not.toHaveBeenCalled();
     expect(recoveryMock.startMarketRecoveryScheduler).not.toHaveBeenCalled();
     expect(schedulerMock.loadAllSchedules).not.toHaveBeenCalled();
+    expect(botMock.startTelegramBot).not.toHaveBeenCalled();
+  });
+
+  it("서버 런타임에서 텔레그램 봇 수신을 시작하고, 실패해도 스케줄러는 계속 올린다", async () => {
+    delete process.env.NEXT_PHASE;
+    process.env.NEXT_RUNTIME = "nodejs";
+    botMock.startTelegramBot.mockImplementationOnce(() => { throw new Error("boom"); });
+    await register();
+    expect(botMock.startTelegramBot).toHaveBeenCalledTimes(1);
+    expect(schedulerMock.loadAllSchedules).toHaveBeenCalled();
   });
 
   it("nodejs 런타임이 아니면(edge 등) 건너뛴다", async () => {
