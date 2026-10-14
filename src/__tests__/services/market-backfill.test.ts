@@ -15,3 +15,8 @@ it("resumes only matching commodity and corporation scopes", () => {
   expect(scopeKey({ corporationCodes: "b,a", targetProducts: "포도, 토마토" })).toBe(a);
   expect(scopeKey({ corporationCodes: "a,b", targetProducts: "딸기" })).not.toBe(a);
 });
+it("keys a product-limited backfill separately from the full settings scope", () => {
+  const setting = { corporationCodes: "a,b", targetProducts: "토마토,포도,오이" };
+  expect(scopeKey(setting, "오이")).not.toBe(scopeKey(setting));
+  expect(scopeKey(setting, "오이")).toBe(scopeKey({ ...setting, targetProducts: "오이" }));
+});

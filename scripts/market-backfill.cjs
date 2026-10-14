@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-require-imports -- Standalone Node 20 CommonJS recovery CLI. */
-// NAS container: node scripts/market-backfill.cjs --from YYYY-MM-DD --to YYYY-MM-DD
+// NAS container: node scripts/market-backfill.cjs --from YYYY-MM-DD --to YYYY-MM-DD [--products 오이]
+// --products limits collection to those products (e.g. a newly added item) instead of the settings' full list.
 // Uses the authenticated collection endpoint; never deletes data or prints credentials.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -20,15 +21,16 @@ function recoveryDates(from, to, now = new Date()) {
   return Array.from({ length: (end - start) / 86400000 + 1 }, (_, i) => new Date(end - i * 86400000).toISOString().slice(0, 10));
 }
 
-function scopeKey(setting) {
+function scopeKey(setting, products) {
   return createHash('sha256').update(JSON.stringify([
     setting.corporationCodes.split(',').filter(Boolean).sort(),
-    setting.targetProducts.split(',').map(s => s.trim()).filter(Boolean).sort(),
+    (products || setting.targetProducts).split(',').map(s => s.trim()).filter(Boolean).sort(),
   ])).digest('hex').slice(0, 16);
 }
 
 async function main() {
-  const { values } = parseArgs({ options: { from: { type: 'string' }, to: { type: 'string' } } });
+  const { values } = parseArgs({ options: { from: { type: 'string' }, to: { type: 'string' }, products: { type: 'string' } } });
+  const products = values.products ? values.products.split(',').map(s => s.trim()).filter(Boolean).join(',') : undefined;
   const dates = recoveryDates(values.from, values.to);
   if (!process.env.CRON_SECRET) throw new Error('CRON_SECRET is required');
   const { PrismaClient } = require('@prisma/client');
@@ -47,14 +49,14 @@ async function main() {
     if (!settings.length) throw new Error('No enabled collection settings');
     for (const date of dates) {
       for (const setting of settings) {
-        const scope = scopeKey(setting), key = `${scope}:${date}`;
+        const scope = scopeKey(setting, products), key = `${scope}:${date}`;
         if (completed.has(key)) continue;
         const started = Date.now();
         // Loopback only: secret cannot be redirected to another host.
         const response = await fetch('http://127.0.0.1:3000/api/market/garak/cron', {
           method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15 * 60 * 1000),
           headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.CRON_SECRET}` },
-          body: JSON.stringify({ userId: setting.userId, date }),
+          body: JSON.stringify({ userId: setting.userId, date, ...(products ? { products } : {}) }),
         });
         if (!response.ok) throw new Error(`Collection endpoint HTTP ${response.status}`);
         const data = await response.json();
