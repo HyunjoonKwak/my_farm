@@ -1,35 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 
-const { prismaMock, sendMock, configMock, itemsMock, rowMock } = vi.hoisted(() => ({
+const { prismaMock, sendMock, configMock, itemsMock, dailyMock, weeklyMock } = vi.hoisted(() => ({
   prismaMock: {
-    marketDigestDelivery: { create: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+    marketDigestDelivery: { create: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findUnique: vi.fn().mockResolvedValue(null) },
     marketCollectionSettings: { findFirst: vi.fn() },
   },
   sendMock: vi.fn(),
   configMock: vi.fn(),
   itemsMock: vi.fn(),
-  rowMock: vi.fn(),
+  dailyMock: vi.fn(),
+  weeklyMock: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ default: prismaMock }));
 vi.mock("@/lib/logger", () => ({ logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/services/telegram", () => ({ sendTelegramMessage: sendMock, getTelegramConfig: configMock }));
-vi.mock("@/lib/services/market-digest-data", () => ({ getDigestItems: itemsMock, buildItemRow: rowMock }));
+vi.mock("@/lib/services/market-digest-data", () => ({ getDigestItems: itemsMock }));
+vi.mock("@/lib/services/market-insight/build", () => ({ buildDailyBriefing: dailyMock, buildWeeklyReport: weeklyMock }));
 
-import { expectedDigestDateKey, maybeSendDailyDigest, sendTestDigest } from "@/lib/services/market-digest";
-import type { DigestItemRow } from "@/lib/services/market-digest-format";
+import {
+  expectedDigestDateKey,
+  isWeeklyWindow,
+  maybeSendDailyDigest,
+  reportMonday,
+  sendTestDigest,
+} from "@/lib/services/market-digest";
 
 const ITEM = { productName: "토마토", label: "대추방울토마토", varieties: ["대추빨강"], origin: "경기도 평택시" };
 
-function row(tradeCount: number): DigestItemRow {
-  return {
-    title: "대추방울토마토", autoVariety: null, origin: "경기도 평택시", originFallback: false,
-    tradeCount, totalQuantity: tradeCount * 10,
-    representative: tradeCount ? { grade: "특", unit: "3kg", avgPrice: 9000, kgPrice: 3000 } : null,
-    change: null,
-  };
-}
+const message = (hasTrades: boolean, text = hasTrades ? "📊 가락시장 브리핑 · 10/13(화)" : "📊 가락시장 브리핑 · 10/13(화)\n대추방울토마토 수집된 거래 없음 · 휴장 추정") =>
+  ({ text, hasTrades });
 
 function uniqueViolation() {
   return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", { code: "P2002", clientVersion: "test" });
@@ -39,9 +40,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   configMock.mockReturnValue({ token: "t", chatId: "c" });
   itemsMock.mockResolvedValue([ITEM]);
-  rowMock.mockResolvedValue(row(0));
+  dailyMock.mockResolvedValue(message(false));
+  weeklyMock.mockResolvedValue({ text: "📅 주간 시세 리포트", hasTrades: true });
   prismaMock.marketDigestDelivery.create.mockResolvedValue({ id: "d1" });
   prismaMock.marketDigestDelivery.update.mockResolvedValue({});
+  prismaMock.marketDigestDelivery.findUnique.mockResolvedValue(null);
   sendMock.mockResolvedValue({ status: "SENT", messageId: "9", error: null });
 });
 
@@ -99,7 +102,7 @@ describe("maybeSendDailyDigest", () => {
   });
 
   it("replaces an earlier empty digest once trades are collected", async () => {
-    rowMock.mockResolvedValue(row(3));
+    dailyMock.mockResolvedValue(message(true));
     prismaMock.marketDigestDelivery.create.mockRejectedValue(uniqueViolation());
     prismaMock.marketDigestDelivery.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.marketDigestDelivery.findUnique.mockResolvedValue({ id: "d0" });
@@ -136,9 +139,48 @@ describe("maybeSendDailyDigest", () => {
 
 describe("sendTestDigest", () => {
   it("sends with a test prefix and leaves no delivery record", async () => {
-    rowMock.mockResolvedValue(row(3));
+    dailyMock.mockResolvedValue(message(true));
     expect(await sendTestDigest("2026-10-13")).toBe("SENT");
-    expect(sendMock.mock.calls[0][0]).toMatch(/^\[테스트\] 가락시장 경매 요약/);
+    expect(sendMock.mock.calls[0][0]).toMatch(/^\[테스트\] 📊 가락시장 브리핑/);
     expect(prismaMock.marketDigestDelivery.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("weekly report", () => {
+  it("reports on the previous Monday–Sunday week", () => {
+    expect(reportMonday("2026-10-12")).toBe("2026-10-05"); // 월
+    expect(reportMonday("2026-10-14")).toBe("2026-10-05"); // 수
+    expect(reportMonday("2026-10-18")).toBe("2026-10-05"); // 일
+    expect(isWeeklyWindow("2026-10-12")).toBe(true);
+    expect(isWeeklyWindow("2026-10-14")).toBe(true);
+    expect(isWeeklyWindow("2026-10-15")).toBe(false);
+  });
+
+  it("sends the weekly once alongside the first completed daily of Mon–Wed", async () => {
+    dailyMock.mockResolvedValue(message(true));
+    await maybeSendDailyDigest({ collectDaysAgo: 0 }, "2026-10-12", new Date("2026-10-12T00:31:00Z"));
+    expect(prismaMock.marketDigestDelivery.create).toHaveBeenCalledWith({
+      data: { channel: "telegram-weekly", dateKey: "2026-10-05", status: "SENDING" },
+    });
+    expect(weeklyMock.mock.calls[0].slice(0, 2)).toEqual(["2026-10-05", [ITEM]]);
+    expect(sendMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not send a weekly on Thursday", async () => {
+    await maybeSendDailyDigest({ collectDaysAgo: 0 }, "2026-10-15", new Date("2026-10-15T00:31:00Z"));
+    expect(weeklyMock).not.toHaveBeenCalled();
+  });
+
+  it("test-sends a weekly with the test prefix", async () => {
+    await sendTestDigest("2026-10-12", "weekly");
+    expect(sendMock.mock.calls[0][0]).toBe("[테스트] 📅 주간 시세 리포트");
+  });
+});
+
+describe("weekly short-circuit", () => {
+  it("skips rebuilding a weekly that was already handled", async () => {
+    prismaMock.marketDigestDelivery.findUnique.mockResolvedValueOnce({ status: "SENT" });
+    await maybeSendDailyDigest({ collectDaysAgo: 0 }, "2026-10-13", new Date("2026-10-13T00:31:00Z"));
+    expect(weeklyMock).not.toHaveBeenCalled();
   });
 });

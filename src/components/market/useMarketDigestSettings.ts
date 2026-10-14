@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import type { DigestItemInput } from "@/lib/validations/market-digest";
 
 export type DigestItemDraft = DigestItemInput;
+export type DigestKind = "daily" | "weekly";
 
 export interface DigestDelivery {
+  channel: string;
   dateKey: string;
   status: string;
   error: string | null;
@@ -87,10 +89,10 @@ export function useMarketDigestSettings() {
     }
   }, [draft, applyState]);
 
-  const loadPreview = useCallback(async () => {
+  const loadPreview = useCallback(async (kind: DigestKind) => {
     setPreviewLoading(true);
     try {
-      const body = await readJson<{ text: string | null }>(await fetch(DIGEST_URL));
+      const body = await readJson<{ text: string | null }>(await fetch(`${DIGEST_URL}?kind=${kind}`));
       setPreview(body.text ?? "요약이 꺼져 있거나 켜진 항목이 없습니다. 저장한 설정 기준으로 만듭니다.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "미리보기를 만들지 못했습니다.");
@@ -99,13 +101,13 @@ export function useMarketDigestSettings() {
     }
   }, []);
 
-  const sendTest = useCallback(async () => {
+  const sendTest = useCallback(async (kind: DigestKind) => {
     setSending(true);
     try {
       const response = await fetch(DIGEST_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ test: true }),
+        body: JSON.stringify({ test: true, kind }),
       });
       const { outcome } = await readJson<{ outcome: string }>(response);
       const message = OUTCOME_MESSAGES[outcome] ?? outcome;
@@ -118,9 +120,11 @@ export function useMarketDigestSettings() {
     }
   }, []);
 
+  const clearPreview = useCallback(() => setPreview(null), []);
+
   const reset = useCallback(() => {
     if (state) setDraft({ digestEnabled: state.digestEnabled, items: state.items });
   }, [state]);
 
-  return { state, draft, setDraft, dirty, saving, sending, preview, previewLoading, save, reset, loadPreview, sendTest };
+  return { state, draft, setDraft, dirty, saving, sending, preview, previewLoading, save, reset, loadPreview, clearPreview, sendTest };
 }

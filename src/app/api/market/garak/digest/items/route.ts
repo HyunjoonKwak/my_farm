@@ -9,7 +9,7 @@ import { digestSettingsSchema } from "@/lib/validations/market-digest";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const RECENT_DELIVERIES = 5;
+const RECENT_DELIVERIES = 8;
 
 async function loadState(userId: string) {
   const [settings, deliveries] = await Promise.all([
@@ -22,9 +22,10 @@ async function loadState(userId: string) {
       },
     }),
     prisma.marketDigestDelivery.findMany({
-      orderBy: { dateKey: "desc" },
+      // 주간 이력의 날짜 키는 지난주 월요일이라 처리 시각 순으로 보여야 함께 보인다
+      orderBy: { updatedAt: "desc" },
       take: RECENT_DELIVERIES,
-      select: { dateKey: true, status: true, error: true, updatedAt: true },
+      select: { channel: true, dateKey: true, status: true, error: true, updatedAt: true },
     }),
   ]);
   return {

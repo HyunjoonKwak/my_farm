@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { MAX_DIGEST_ITEMS } from "@/lib/validations/market-digest";
 import { MarketDigestItemEditor } from "./MarketDigestItemEditor";
-import { useMarketDigestSettings, type DigestDelivery, type DigestItemDraft } from "./useMarketDigestSettings";
+import { useState } from "react";
+import { useMarketDigestSettings, type DigestDelivery, type DigestItemDraft, type DigestKind } from "./useMarketDigestSettings";
 
 const DELIVERY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   SENT: { label: "발송", variant: "default" },
@@ -17,6 +18,8 @@ const DELIVERY_LABELS: Record<string, { label: string; variant: "default" | "sec
   UNKNOWN: { label: "확인 필요", variant: "outline" },
   FAILED: { label: "실패", variant: "destructive" },
 };
+
+const KIND_LABELS: Record<DigestKind, string> = { daily: "일일 브리핑", weekly: "주간 리포트" };
 
 const NEW_ITEM: DigestItemDraft = { productName: "토마토", label: "", varieties: [], origin: "", enabled: true };
 
@@ -35,8 +38,9 @@ function DeliveryList({ deliveries }: { deliveries: DigestDelivery[] }) {
       {deliveries.map((delivery) => {
         const badge = DELIVERY_LABELS[delivery.status] ?? { label: delivery.status, variant: "outline" as const };
         return (
-          <li key={delivery.dateKey} className="flex flex-wrap items-center gap-2 text-xs">
+          <li key={`${delivery.channel}-${delivery.dateKey}`} className="flex flex-wrap items-center gap-2 text-xs">
             <span className="tabular-nums">{delivery.dateKey}</span>
+            <span className="text-muted-foreground">{delivery.channel === "telegram-weekly" ? "주간" : "일일"}</span>
             <Badge variant={badge.variant}>{badge.label}</Badge>
             {delivery.error && <span className="text-muted-foreground">{delivery.error}</span>}
           </li>
@@ -47,8 +51,9 @@ function DeliveryList({ deliveries }: { deliveries: DigestDelivery[] }) {
 }
 
 export function MarketDigestSettings() {
-  const { state, draft, setDraft, dirty, saving, sending, preview, previewLoading, save, reset, loadPreview, sendTest } =
+  const { state, draft, setDraft, dirty, saving, sending, preview, previewLoading, save, reset, loadPreview, clearPreview, sendTest } =
     useMarketDigestSettings();
+  const [kind, setKind] = useState<DigestKind>("daily");
 
   if (!state || !draft) {
     return (
@@ -69,14 +74,14 @@ export function MarketDigestSettings() {
       <CardHeader className="pb-3">
         <CardTitle className="flex flex-wrap items-center gap-2 text-base sm:text-lg">
           <Send className="h-5 w-5" />
-          텔레그램 일일 요약
+          텔레그램 시세 브리핑
           <Badge variant={state.telegramConfigured ? "default" : "outline"}>
             {state.telegramConfigured ? "텔레그램 연결됨" : "텔레그램 미설정"}
           </Badge>
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          자동 수집이 끝나면 아래 항목의 대표 경락가(물량 최다 등급·단위 가중평균)를 하루 한 번 보냅니다.
-          지정 산지에 그날 거래가 없으면 전체 산지 기준으로 대신 보냅니다.
+          자동 수집이 끝나면 매일 브리핑(전국 기준 흐름·주의 신호)을, 주 초(월요일 수집분, 늦어지면 수요일까지)에는 지난주 주간
+          리포트(전년 비교·출하 법인 비교)를 보냅니다. 비교 산지를 고르면 그 산지 가격이 전국과 얼마나 다른지, 평소 범위를 벗어났는지 함께 알려 줍니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -85,7 +90,7 @@ export function MarketDigestSettings() {
         )}
 
         <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
-          <Label htmlFor="digest-enabled" className="text-sm">일일 요약 받기</Label>
+          <Label htmlFor="digest-enabled" className="text-sm">브리핑 받기</Label>
           <Switch
             id="digest-enabled"
             checked={draft.digestEnabled}
@@ -117,7 +122,7 @@ export function MarketDigestSettings() {
           </Button>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button className="sm:flex-1" disabled={!dirty || saving || !state.hasSettings} onClick={save}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             저장
@@ -126,11 +131,28 @@ export function MarketDigestSettings() {
             <RotateCcw className="mr-2 h-4 w-4" />
             되돌리기
           </Button>
-          <Button variant="outline" disabled={dirty || previewLoading} onClick={loadPreview}>
+          <div className="flex rounded-md border p-0.5" role="group" aria-label="미리보기·테스트 종류">
+            {(Object.keys(KIND_LABELS) as DigestKind[]).map((value) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={kind === value ? "secondary" : "ghost"}
+                className="flex-1"
+                aria-pressed={kind === value}
+                onClick={() => {
+                  setKind(value);
+                  clearPreview();
+                }}
+              >
+                {KIND_LABELS[value]}
+              </Button>
+            ))}
+          </div>
+          <Button variant="outline" disabled={dirty || previewLoading} onClick={() => loadPreview(kind)}>
             {previewLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
             미리보기
           </Button>
-          <Button variant="outline" disabled={dirty || sending || !state.telegramConfigured} onClick={sendTest}>
+          <Button variant="outline" disabled={dirty || sending || !state.telegramConfigured} onClick={() => sendTest(kind)}>
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             테스트 발송
           </Button>

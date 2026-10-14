@@ -112,12 +112,12 @@ export function MarketDigestItemEditor({ item, index, count, collected, onChange
           />
         </div>
         <div className="min-w-0 space-y-1">
-          <Label className="text-xs">산지</Label>
+          <Label className="text-xs">비교 산지 (전국 시세와 비교)</Label>
           <MarketDigestPicker
             options={facets?.origins ?? []}
             selected={item.origin ? [item.origin] : []}
             multiple={false}
-            noneLabel="전체 산지"
+            noneLabel="비교 안 함"
             loading={!facets}
             onChange={(next) => update({ origin: next[0] ?? "" })}
           />

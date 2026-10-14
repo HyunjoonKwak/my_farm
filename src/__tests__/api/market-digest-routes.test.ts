@@ -33,8 +33,8 @@ vi.mock("@/lib/prisma", () => ({
 vi.mock("@/lib/logger", () => ({ logger: { error: vi.fn(), info: vi.fn() } }));
 vi.mock("@/lib/services/telegram", () => ({ getTelegramConfig: () => ({ token: "t", chatId: "c" }) }));
 vi.mock("@/lib/services/market-digest", () => ({
-  buildDailyDigest: vi.fn(),
-  sendDailyDigest: m.sendDaily,
+  buildDigest: vi.fn(),
+  sendDigest: m.sendDaily,
   sendTestDigest: m.sendTest,
   defaultDigestDateKey: m.defaultDate,
 }));
@@ -92,15 +92,15 @@ describe("PUT /api/market/garak/digest/items", () => {
 });
 
 describe("POST /api/market/garak/digest", () => {
-  it.each([{ date: "2026-13-45" }, { date: "2026-02-30" }, { date: "2099-01-01" }])("rejects bad dates: %j", async (body) => {
+  it.each([{ date: "2026-13-45" }, { date: "2026-02-30" }, { date: "2099-01-01" }, { kind: "monthly" }])("rejects bad dates: %j", async (body) => {
     expect((await post(body)).status).toBe(400);
     expect(m.sendDaily).not.toHaveBeenCalled();
   });
 
   it("defaults to the collection target date and routes test sends separately", async () => {
-    expect(await (await post({})).json()).toEqual({ dateKey: "2026-10-14", outcome: "SENT" });
-    expect(m.sendDaily).toHaveBeenCalledWith("2026-10-14");
-    await post({ test: true, date: "2026-10-13" });
-    expect(m.sendTest).toHaveBeenCalledWith("2026-10-13");
+    expect(await (await post({})).json()).toEqual({ dateKey: "2026-10-14", kind: "daily", outcome: "SENT" });
+    expect(m.sendDaily).toHaveBeenCalledWith("daily", "2026-10-14");
+    await post({ test: true, date: "2026-10-13", kind: "weekly" });
+    expect(m.sendTest).toHaveBeenCalledWith("2026-10-13", "weekly");
   });
 });
