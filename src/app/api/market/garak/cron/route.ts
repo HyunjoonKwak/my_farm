@@ -8,6 +8,8 @@ import {
   cleanupOldAuctionData,
   type CollectionStatus,
 } from "@/lib/services/garak-market";
+import { maybeSendDailyDigest } from "@/lib/services/market-digest";
+import { marketDateKey } from "@/lib/market-date";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,7 +78,8 @@ export async function GET(request: NextRequest) {
 
     for (const setting of settingsToRun) {
       try {
-        const targetDate = new Date();
+        const startedAt = new Date();
+        const targetDate = new Date(startedAt);
         targetDate.setDate(targetDate.getDate() - setting.collectDaysAgo);
 
         const corporationCodes = setting.corporationCodes
@@ -92,6 +95,9 @@ export async function GET(request: NextRequest) {
 
         if (setting.autoCleanupEnabled && result.complete) {
           await cleanupOldAuctionData();
+        }
+        if (result.complete) {
+          await maybeSendDailyDigest(setting, marketDateKey(targetDate), startedAt);
         }
 
         results.push({

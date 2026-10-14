@@ -51,7 +51,7 @@ export function parseKgFromUnit(unit: string): number | null {
   return packageKg(unit);
 }
 
-function weightedAveragePrice(
+export function weightedAveragePrice(
   items: { price: number; quantity: number }[]
 ): number {
   const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);

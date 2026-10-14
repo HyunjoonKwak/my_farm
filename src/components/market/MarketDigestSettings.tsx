@@ -1,0 +1,151 @@
+"use client";
+
+import { Eye, Loader2, Plus, RotateCcw, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { MAX_DIGEST_ITEMS } from "@/lib/validations/market-digest";
+import { MarketDigestItemEditor } from "./MarketDigestItemEditor";
+import { useMarketDigestSettings, type DigestDelivery, type DigestItemDraft } from "./useMarketDigestSettings";
+
+const DELIVERY_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  SENT: { label: "발송", variant: "default" },
+  EMPTY_SENT: { label: "발송(거래 없음)", variant: "secondary" },
+  SENDING: { label: "발송 중", variant: "outline" },
+  UNKNOWN: { label: "확인 필요", variant: "outline" },
+  FAILED: { label: "실패", variant: "destructive" },
+};
+
+const NEW_ITEM: DigestItemDraft = { productName: "토마토", label: "", varieties: [], origin: "", enabled: true };
+
+function moveItem(items: DigestItemDraft[], index: number, offset: -1 | 1): DigestItemDraft[] {
+  const target = index + offset;
+  if (target < 0 || target >= items.length) return items;
+  const next = [...items];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+function DeliveryList({ deliveries }: { deliveries: DigestDelivery[] }) {
+  if (deliveries.length === 0) return <p className="text-xs text-muted-foreground">아직 발송 이력이 없습니다.</p>;
+  return (
+    <ul className="space-y-1">
+      {deliveries.map((delivery) => {
+        const badge = DELIVERY_LABELS[delivery.status] ?? { label: delivery.status, variant: "outline" as const };
+        return (
+          <li key={delivery.dateKey} className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="tabular-nums">{delivery.dateKey}</span>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+            {delivery.error && <span className="text-muted-foreground">{delivery.error}</span>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function MarketDigestSettings() {
+  const { state, draft, setDraft, dirty, saving, sending, preview, previewLoading, save, reset, loadPreview, sendTest } =
+    useMarketDigestSettings();
+
+  if (!state || !draft) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const setItems = (items: DigestItemDraft[]) => setDraft({ ...draft, items });
+  const updateItem = (index: number, item: DigestItemDraft) =>
+    setItems(draft.items.map((current, i) => (i === index ? item : current)));
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base sm:text-lg">
+          <Send className="h-5 w-5" />
+          텔레그램 일일 요약
+          <Badge variant={state.telegramConfigured ? "default" : "outline"}>
+            {state.telegramConfigured ? "텔레그램 연결됨" : "텔레그램 미설정"}
+          </Badge>
+        </CardTitle>
+        <CardDescription className="text-xs sm:text-sm">
+          자동 수집이 끝나면 아래 항목의 대표 경락가(물량 최다 등급·단위 가중평균)를 하루 한 번 보냅니다.
+          지정 산지에 그날 거래가 없으면 전체 산지 기준으로 대신 보냅니다.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!state.hasSettings && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">먼저 위의 자동 수집 설정을 저장해 주세요.</p>
+        )}
+
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
+          <Label htmlFor="digest-enabled" className="text-sm">일일 요약 받기</Label>
+          <Switch
+            id="digest-enabled"
+            checked={draft.digestEnabled}
+            onCheckedChange={(digestEnabled) => setDraft({ ...draft, digestEnabled })}
+          />
+        </div>
+
+        <div className="space-y-3">
+          {draft.items.map((item, index) => (
+            <MarketDigestItemEditor
+              key={index}
+              item={item}
+              index={index}
+              count={draft.items.length}
+              collected={state.targetProducts.includes(item.productName)}
+              onChange={(next) => updateItem(index, next)}
+              onMove={(offset) => setItems(moveItem(draft.items, index, offset))}
+              onRemove={() => setItems(draft.items.filter((_, i) => i !== index))}
+            />
+          ))}
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={draft.items.length >= MAX_DIGEST_ITEMS}
+            onClick={() => setItems([...draft.items, NEW_ITEM])}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            항목 추가
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button className="sm:flex-1" disabled={!dirty || saving || !state.hasSettings} onClick={save}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            저장
+          </Button>
+          <Button variant="outline" disabled={!dirty || saving} onClick={reset}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            되돌리기
+          </Button>
+          <Button variant="outline" disabled={dirty || previewLoading} onClick={loadPreview}>
+            {previewLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+            미리보기
+          </Button>
+          <Button variant="outline" disabled={dirty || sending || !state.telegramConfigured} onClick={sendTest}>
+            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            테스트 발송
+          </Button>
+        </div>
+        {dirty && <p className="text-xs text-muted-foreground">미리보기·테스트 발송은 저장한 설정으로 만듭니다.</p>}
+
+        {preview && (
+          <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-3 text-xs leading-relaxed">{preview}</pre>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium">최근 발송</p>
+          <DeliveryList deliveries={state.deliveries} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

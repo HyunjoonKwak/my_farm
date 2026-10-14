@@ -378,8 +378,30 @@ model MarketCollectionSettings {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  // 텔레그램 일일 요약 (발송 항목은 digestItems)
+  digestEnabled       Boolean  @default(false)
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   recoveryJobs MarketRecoveryJob[]
+  digestItems  MarketDigestItem[]
+}
+
+// 일일 요약에 넣을 항목 — 같은 품종이 여러 이름으로 기록되므로 품종은 목록으로 받는다
+model MarketDigestItem {
+  id          String   @id @default(cuid())
+  settingsId  String
+  productName String   // 가락시장 품목명 (MARKET_PRODUCTS)
+  label       String   @default("") // 표시 이름 (빈 문자열 = 품목명)
+  varieties   String   @default("[]") // JSON 문자열 배열, 빈 배열 = 그날 물량 최다 품종 자동
+  origin      String   @default("") // 산지명 (빈 문자열 = 전체 산지). 그날 거래가 없으면 전체 산지로 대체
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  settings MarketCollectionSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+
+  @@index([settingsId, sortOrder])
 }
 
 // 자동 보충의 시도 횟수와 실행 소유권은 재시작 후에도 유지한다.
@@ -685,4 +707,18 @@ model CompetitorCollectionJob {
   @@index([userId, status, createdAt])
   @@index([userId, createdAt])
   @@index([userId, status, completedAt])
+}
+
+// 일일 시세 요약 발송 이력 (채널·날짜당 1건 — 발송 전에 점유해 중복 발송 방지)
+model MarketDigestDelivery {
+  id        String   @id @default(cuid())
+  channel   String   // telegram
+  dateKey   String   // YYYY-MM-DD (KST 경매일)
+  status    String   // SENDING, SENT, EMPTY_SENT(0건 요약 — 거래 수집 시 재발송), FAILED, UNKNOWN
+  messageId String?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channel, dateKey])
 }

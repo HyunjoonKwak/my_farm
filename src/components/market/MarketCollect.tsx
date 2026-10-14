@@ -38,6 +38,7 @@ import { MARKET_PRODUCTS } from "@/lib/constants/market-products";
 import { MarketCollectAutoSettings } from "./MarketCollectAutoSettings";
 import { MarketCollectLogs } from "./MarketCollectLogs";
 import { MarketRecoveryStatus } from "./MarketRecoveryStatus";
+import { MarketDigestSettings } from "./MarketDigestSettings";
 
 interface MarketSettings {
   autoCollectEnabled: boolean;
@@ -561,6 +562,8 @@ export function MarketCollect({ onCollectComplete }: MarketCollectProps) {
       </Card>
 
       <MarketRecoveryStatus />
+
+      <MarketDigestSettings />
 
       <MarketCollectLogs logs={logs} />
 

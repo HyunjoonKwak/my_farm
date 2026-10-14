@@ -10,6 +10,8 @@ import {
   collectAndSaveAuctionData,
   cleanupOldAuctionData,
 } from "@/lib/services/garak-market";
+import { maybeSendDailyDigest } from "@/lib/services/market-digest";
+import { marketDateKey } from "@/lib/market-date";
 
 // instrumentation과 라우트가 별도 번들로 로드되어도 같은 프로세스 상태를 공유한다.
 interface MarketSchedulerState {
@@ -142,7 +144,8 @@ async function executeCollectionInner(settingsId: string) {
   }
 
   try {
-    const targetDate = new Date();
+    const startedAt = new Date();
+    const targetDate = new Date(startedAt);
     targetDate.setDate(targetDate.getDate() - settings.collectDaysAgo);
 
     const corporationCodes = settings.corporationCodes
@@ -164,8 +167,10 @@ async function executeCollectionInner(settingsId: string) {
       logger.warn(
         `[Scheduler] 수집이 완전하지 않아 정리(cleanup)를 건너뜁니다 (${settingsId}): ${result.issues.join(" | ") || result.status}`
       );
-    } else if (settings.autoCleanupEnabled) {
-      await cleanupOldAuctionData();
+    } else {
+      if (settings.autoCleanupEnabled) await cleanupOldAuctionData();
+      // 수집이 자정을 넘겨도 수집 시작 시각 기준으로 대상 날짜를 판정한다
+      await maybeSendDailyDigest(settings, marketDateKey(targetDate), startedAt);
     }
   } catch (error) {
     logger.error(`[Scheduler] Collection failed (${settingsId}):`, error);

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { prismaMock, collectMock, cleanupMock, cronMock } = vi.hoisted(() => ({
+const { prismaMock, collectMock, cleanupMock, cronMock, digestMock } = vi.hoisted(() => ({
   cronMock: { validate: vi.fn<(expr: string) => boolean>(() => true), schedule: vi.fn(() => ({ stop: vi.fn() })) },
   prismaMock: {
     marketCollectionSettings: { findUnique: vi.fn(), findMany: vi.fn() },
@@ -8,6 +8,7 @@ const { prismaMock, collectMock, cleanupMock, cronMock } = vi.hoisted(() => ({
   },
   collectMock: vi.fn(),
   cleanupMock: vi.fn(),
+  digestMock: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ default: prismaMock }));
@@ -17,6 +18,7 @@ vi.mock("@/lib/services/garak-market", () => ({
   cleanupOldAuctionData: cleanupMock,
 }));
 vi.mock("node-cron", () => ({ default: cronMock }));
+vi.mock("@/lib/services/market-digest", () => ({ maybeSendDailyDigest: digestMock }));
 
 import { runScheduleNow, isCollectionRunning, clearAllSchedules, loadAllSchedules, getSchedulerStatus } from "@/lib/scheduler";
 
@@ -108,6 +110,22 @@ describe("scheduler executeCollection", () => {
     collectMock.mockResolvedValueOnce(collectionResult("EMPTY"));
     await runScheduleNow("s1");
     expect(cleanupMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("완결된 수집 뒤에만 수집 대상 날짜(KST)로 일일 요약을 요청한다", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-13T00:30:00Z"));
+    try {
+      collectMock.mockResolvedValueOnce(collectionResult("PARTIAL"));
+      await runScheduleNow("s1");
+      expect(digestMock).not.toHaveBeenCalled();
+
+      collectMock.mockResolvedValueOnce(collectionResult("SUCCESS"));
+      await runScheduleNow("s1");
+      expect(digestMock).toHaveBeenCalledWith(SETTINGS, "2026-10-12", expect.any(Date));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("같은 설정의 수집이 실행 중이면 다시 트리거돼도 건너뛴다", async () => {

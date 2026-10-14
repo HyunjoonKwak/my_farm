@@ -3,6 +3,7 @@ import type { MarketCollectionSettings, MarketRecoveryJob } from "@prisma/client
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { collectAndSaveAuctionData } from "./garak-market";
+import { maybeSendDailyDigest } from "./market-digest";
 import { getSchedulerStatus, isCollectionRunning, loadAllSchedules } from "@/lib/scheduler";
 import { canonicalList, completedDateStatus, dueRecoveryDates, kstDateStart, recoveryScope, RECOVERY_MAX_ATTEMPTS } from "@/lib/market-recovery-policy";
 
@@ -51,6 +52,7 @@ async function executeJob(job: MarketRecoveryJob, setting: MarketCollectionSetti
       await prisma.marketRecoveryJob.updateMany({ where: { id: job.id, leaseToken: token }, data: { status: "CANCELLED", attempts: { decrement: 1 }, leaseToken: null, leaseUntil: null } });
       return true;
     }
+    const startedAt = new Date();
     const result = await collectAndSaveAuctionData(kstDateStart(job.targetDate), canonicalList(current.corporationCodes).split(","), current.targetProducts || undefined);
     await prisma.marketRecoveryJob.updateMany({ where: { id: job.id, leaseToken: token }, data: {
       status: result.status, leaseToken: null, leaseUntil: null,
@@ -59,6 +61,8 @@ async function executeJob(job: MarketRecoveryJob, setting: MarketCollectionSetti
         ? "일부 자료가 누락되었습니다. 수집 로그에서 원인과 조치를 확인해 주세요."
         : "수집에 실패했습니다. 연결 및 인증 설정과 수집 로그를 확인해 주세요.",
     } });
+    // 정기 수집을 놓친 날은 보충이 끝난 뒤 요약을 보낸다 (과거 날짜는 내부에서 거른다).
+    if (result.complete) await maybeSendDailyDigest(current, job.targetDate, startedAt);
   } catch {
     await prisma.marketRecoveryJob.updateMany({ where: { id: job.id, leaseToken: token }, data: {
       status: "FAILED", leaseToken: null, leaseUntil: null, nextAttemptAt: new Date(Date.now() + 60 * 60000),

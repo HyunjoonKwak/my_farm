@@ -32,6 +32,9 @@ services:
       - ASSET_MANAGER_SNAPSHOT_TOKEN=${ASSET_MANAGER_SNAPSHOT_TOKEN:-}
       # 브라우저 딥링크용 공개 URL (서버 컴포넌트에서 런타임 참조)
       - NEXT_PUBLIC_ASSET_MANAGER_URL=${NEXT_PUBLIC_ASSET_MANAGER_URL:-}
+      # 일일 시세 요약 텔레그램 발송 — 둘 다 비면 발송하지 않는다 (이 앱 전용 봇·채팅방).
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
       - BACKUP_DIR=/backups
     volumes:
       - ${BACKUP_PATH:-${BACKUP_DIR:-./backups}}:/backups
