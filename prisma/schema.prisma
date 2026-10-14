@@ -321,6 +321,9 @@ model AuctionResult {
   // 품목별 품종·산지 목록 집계를 인덱스만으로 끝내기 위한 커버링 인덱스
   @@index([productName, variety])
   @@index([productName, origin])
+  // 시세 브리핑 집계용 커버링 인덱스 — 품목·규격·품종·기간으로 찾고 산지·법인·가격·수량까지 인덱스만으로 합산한다
+  // (없으면 NAS 디스크에서 원본 행을 읽느라 품목당 80초 이상 걸렸다)
+  @@index([productName, unit, grade, variety, auctionDate, origin, corporationCode, price, quantity], map: "AuctionResult_insight_idx")
 }
 
 // 관심 품목 (가락시장용)
