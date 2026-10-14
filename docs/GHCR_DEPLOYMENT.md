@@ -53,8 +53,11 @@ NEXT_PUBLIC_MY_PORTAL_URL=http://nas-ip:3022
 # GHCR 로그인
 ./manage.sh ghcr:login
 
-# 멀티플랫폼 이미지 빌드 및 푸시
+# 이미지 빌드 및 푸시 (기본 linux/amd64 — NAS 전용)
 ./manage.sh ghcr:push
+
+# arm64도 필요할 때만
+BUILD_PLATFORMS="linux/amd64,linux/arm64" ./manage.sh ghcr:push
 
 # 특정 태그로 푸시
 IMAGE_TAG=v1.0.0 ./manage.sh ghcr:push
@@ -70,9 +73,9 @@ echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USERNAME --password-stdin
 docker buildx create --name multiarch-builder --driver docker-container --bootstrap
 docker buildx use multiarch-builder
 
-# 멀티플랫폼 빌드 및 푸시
+# 빌드 및 푸시 (NAS는 amd64 전용)
 docker buildx build \
-  --platform linux/amd64,linux/arm64 \
+  --platform linux/amd64 \
   -t ghcr.io/hyunjoonkwak/my-farm:latest \
   -t ghcr.io/hyunjoonkwak/my-farm:v1.0.0 \
   --push \
@@ -159,7 +162,7 @@ my-farm/
 ## 이미지 정보
 
 - **이미지 이름**: `ghcr.io/hyunjoonkwak/my-farm`
-- **플랫폼**: `linux/amd64`, `linux/arm64`
+- **플랫폼**: `linux/amd64` (NAS 전용, 2026-10-14부터 arm64 빌드 중단)
 - **태그 규칙**:
   - `latest` - 최신 버전
   - `v1.0.0` - 특정 버전

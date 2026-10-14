@@ -429,12 +429,14 @@ setup_buildx() {
     log_success "Buildx 빌더 설정 완료: $BUILDER_NAME"
 }
 
-# GHCR 멀티플랫폼 빌드 및 푸시
+# GHCR 이미지 빌드 및 푸시
 ghcr_build() {
     local tag="${1:-$IMAGE_TAG}"
-    local platforms="linux/amd64,linux/arm64"
+    # NAS(Synology DS725+)는 amd64 전용이므로 기본은 amd64만 빌드한다.
+    # arm64 등 다른 타깃이 필요하면: BUILD_PLATFORMS="linux/amd64,linux/arm64" ./manage.sh ghcr:push
+    local platforms="${BUILD_PLATFORMS:-linux/amd64}"
 
-    log_info "GHCR 멀티플랫폼 이미지 빌드 중..."
+    log_info "GHCR 이미지 빌드 중..."
     log_info "태그: $tag"
     log_info "플랫폼: $platforms"
     check_env
@@ -448,7 +450,6 @@ ghcr_build() {
 
     log_info "빌드 태그: $FULL_TAG"
 
-    # 멀티플랫폼 빌드 (linux/amd64 + linux/arm64)
     docker buildx build \
         --platform "$platforms" \
         -t "$FULL_TAG" \
@@ -514,7 +515,7 @@ show_help() {
     echo ""
     echo -e "${BLUE}=== GHCR 배포 (로컬 → NAS) ===${NC}"
     echo "  ghcr:login            - GHCR에 로그인"
-    echo "  ghcr:push [tag]       - 멀티플랫폼 이미지 빌드 및 GHCR에 푸시"
+    echo "  ghcr:push [tag]       - amd64 이미지 빌드 및 GHCR에 푸시 (BUILD_PLATFORMS로 변경)"
     echo ""
     echo -e "${YELLOW}환경 변수:${NC}"
     echo "  GHCR_USERNAME  - GitHub Username (기본: hyunjoonkwak)"
