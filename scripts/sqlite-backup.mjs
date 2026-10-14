@@ -37,11 +37,13 @@ async function regularFile(file) {
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('일반 파일만 사용할 수 있습니다.');
   return stat;
 }
+// quick_check는 DB 크기·디스크 속도에 비례한다 (NAS 480MB 기준 약 2.5분). 기본 15분, SQLITE_TIMEOUT_MS로 조정.
+const SQLITE_TIMEOUT_MS = Number(process.env.SQLITE_TIMEOUT_MS) > 0 ? Number(process.env.SQLITE_TIMEOUT_MS) : 15 * 60 * 1000;
 /** @param {string} database @param {string[]} commands @param {boolean} readOnly */
 async function sqlite(database, commands, readOnly = true) {
   const result = await exec(process.env.SQLITE_BIN || 'sqlite3',
     ['-batch', '-bail', ...(readOnly ? ['-readonly'] : []), database, '.timeout 10000', ...commands],
-    { timeout: 120000, maxBuffer: 1024 * 1024 });
+    { timeout: SQLITE_TIMEOUT_MS, maxBuffer: 1024 * 1024 });
   return result.stdout.trim();
 }
 /** @param {string} file */
