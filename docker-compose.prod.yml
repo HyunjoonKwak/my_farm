@@ -41,7 +41,7 @@ services:
       - ${DATA_PATH:-./data}:/app/prisma/data
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health/ready"]
-      interval: 30s
+      interval: 2m
       timeout: 10s
       retries: 3
       start_period: 40s
